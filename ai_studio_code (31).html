@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SK Number</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Space Grotesk -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Material Symbols Outlined CDN -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+
+    <style>
+        /* FOUC (Flash of Unstyled Content) Fix: Hide the app until it's ready */
+        #app-root {
+            opacity: 0;
+            transition: opacity 0.4s ease-in;
+        }
+
+        /* Using a custom font with Tailwind */
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* Custom utility for hiding scrollbars */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Custom gradient for splash screen and cards */
+        .bg-gradient-main-light { background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
+        .dark .dark\:bg-gradient-main-dark { background-image: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%); }
+        
+        .bg-gradient-card-light { background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%); }
+        .dark .dark\:bg-gradient-card-dark { background-image: linear-gradient(to right, #243949 0%, #517fa4 100%); }
+
+        /* Material Symbols style override */
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24; }
+
+        /* Keyframe animations for toasts */
+        @keyframes toastIn {
+            from { transform: translateY(100%) scale(0.9); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes toastOut {
+            from { transform: translateY(0) scale(1); opacity: 1; }
+            to { transform: translateY(100%) scale(0.9); opacity: 0; }
+        }
+        .animate-toast-in { animation: toastIn 0.3s ease-out forwards; }
+        .animate-toast-out { animation: toastOut 0.3s ease-in forwards; }
+
+        /* Keyframe for splash screen progress bar */
+        @keyframes fillProgress {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+        .animate-progress { animation: fillProgress 1.5s ease-out forwards; }
+    </style>
+    
+    <script>
+        // Tailwind dark mode configuration
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 antialiased overflow-hidden">
+
+    <!-- =========== App Root Container =========== -->
+    <div id="app-root" class="h-screen w-screen flex flex-col items-center justify-center">
+
+        <!-- =========== Splash Screen =========== -->
+        <div id="splash-screen" class="w-full h-full flex flex-col items-center justify-center p-8 text-center bg-gradient-main-light dark:bg-gradient-main-dark transition-opacity duration-500 ease-in-out">
+            <div class="flex items-center space-x-3 mb-2">
+                <span class="material-symbols-outlined text-4xl">phonelink_ring</span>
+                <h1 class="text-4xl font-bold">SK Number</h1>
+            </div>
+            <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">No Login, No Signup — Instant Numbers & Privacy</p>
+            <div class="w-full max-w-xs bg-white/30 dark:bg-black/30 rounded-full h-2.5">
+                <div id="progress-bar" class="bg-blue-500 dark:bg-cyan-400 h-2.5 rounded-full"></div>
+            </div>
+        </div>
+
+        <!-- =========== Main App Wrapper =========== -->
+        <div id="main-app" class="w-full h-full max-w-md mx-auto bg-gray-100 dark:bg-gray-900 flex flex-col relative overflow-hidden hidden">
+
+            <!-- App Header -->
+            <header class="flex-shrink-0 flex items-center justify-between p-4 sticky top-0 bg-gray-100/80 dark:bg-gray-900/80 backdrop-blur-sm z-10 border-b border-gray-200 dark:border-gray-700">
+                <div class="w-10"></div> <!-- Spacer -->
+                <h1 class="text-xl font-bold text-center">SK Number</h1>
+                <button id="theme-toggle-btn" class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <span id="theme-icon" class="material-symbols-outlined"></span>
+                </button>
+            </header>
+
+            <!-- Main Content Area -->
+            <main id="inbox-view" class="flex-grow overflow-y-auto no-scrollbar p-4 space-y-4">
+                
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="change-number-btn" class="w-full flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform active:scale-95">
+                        <span class="material-symbols-outlined">autorenew</span>
+                        <span>Change Number</span>
+                    </button>
+                    <button id="delete-number-btn" class="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform active:scale-95">
+                        <span class="material-symbols-outlined">delete</span>
+                        <span>Delete Number</span>
+                    </button>
+                </div>
+
+                <!-- Current Number Card -->
+                <div class="p-5 rounded-2xl shadow-lg bg-gradient-card-light dark:bg-gradient-card-dark">
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-sm text-gray-600 dark:text-gray-300">Your Temporary Number</p>
+                        <span id="country-badge" class="bg-gray-200 dark:bg-gray-700 text-xs font-semibold px-2.5 py-1 rounded-full">USA</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-4">
+                        <p id="current-number-text" class="text-2xl md:text-3xl font-mono tracking-wider truncate">+1 (555) 012-3456</p>
+                        <button id="copy-btn" class="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-white/50 dark:bg-black/30 rounded-full hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-xl">content_copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Timer Card -->
+                <div class="p-5 rounded-2xl shadow-lg bg-white dark:bg-gray-800">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-300">Number expires in</p>
+                            <p id="timer-display" class="text-3xl font-mono font-bold">10:00</p>
+                        </div>
+                        <button id="extend-timer-btn" class="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform active:scale-95">
+                            <span class="material-symbols-outlined">timer</span>
+                            <span>Extend</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- API Error Card (hidden by default) -->
+                <div id="api-error-card" class="hidden p-5 rounded-2xl shadow-lg bg-red-100 dark:bg-red-900/50 border border-red-500">
+                     <div class="flex items-center gap-4">
+                        <span class="material-symbols-outlined text-red-500 text-3xl">error</span>
+                        <div>
+                             <h3 class="font-bold text-red-800 dark:text-red-200">API Error</h3>
+                             <p class="text-sm text-red-700 dark:text-red-300">Unable to create number — check network or change API.</p>
+                        </div>
+                     </div>
+                </div>
+
+                <!-- Inbox -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-xl font-bold">Inbox</h2>
+                        <button id="refresh-inbox-btn" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                            <span class="material-symbols-outlined">refresh</span>
+                        </button>
+                    </div>
+                    <div id="inbox-list" class="space-y-2">
+                        <!-- Messages will be injected here -->
+                    </div>
+                    <!-- Empty State -->
+                    <div id="empty-inbox-state" class="text-center py-16 px-6">
+                        <span class="material-symbols-outlined text-6xl text-gray-400 dark:text-gray-500">inbox</span>
+                        <p class="mt-4 text-lg font-medium text-gray-500 dark:text-gray-400">Your inbox is empty</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500">Waiting for incoming messages...</p>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Message Detail View (hidden by default) -->
+            <div id="message-detail-view" class="absolute top-0 left-0 w-full h-full bg-gray-100 dark:bg-gray-900 flex-col z-20 hidden transform translate-x-full transition-transform duration-300 ease-in-out">
+                <header class="flex-shrink-0 flex items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                    <button id="back-to-inbox-btn" class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                    </button>
+                    <h2 class="text-xl font-bold mx-auto">Message Details</h2>
+                    <div class="w-10"></div>
+                </header>
+                <div class="flex-grow p-6 overflow-y-auto no-scrollbar">
+                    <div class="flex items-center mb-6">
+                        <div id="message-avatar" class="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center text-xl font-bold mr-4 flex-shrink-0"></div>
+                        <div>
+                            <p id="message-sender" class="font-bold"></p>
+                            <p id="message-timestamp" class="text-sm text-gray-500"></p>
+                        </div>
+                    </div>
+                    <div id="message-body" class="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap break-words"></div>
+                </div>
+                <footer class="p-4 flex-shrink-0">
+                    <button id="delete-message-btn" class="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform active:scale-95">
+                        <span class="material-symbols-outlined">delete</span>
+                        <span>Delete Message</span>
+                    </button>
+                </footer>
+            </div>
+        </div>
+
+        <!-- Toast Notifications Container -->
+        <div id="toast-container" class="fixed bottom-4 left-1/2 -translate-x-1/2 w-full max-w-sm px-4 space-y-2 z-50"></div>
+    </div>
+
+    <!-- =========== JavaScript Module =========== -->
+    <script type="module">
+        // ===================================================================================
+        // APP STATE & CONFIGURATION
+        // ===================================================================================
+
+        const API_BASE_URL = 'https://freesmsglobal.com/'; // Example, actual API would go here.
+        const SIMULATED_MODE = true; // Use true since no public API matches the exact requirements.
+
+        // App's reactive state
+        const state = {
+            currentNumberInfo: null, // { id, number, country }
+            messages: [],
+            timer: null,
+            timeLeft: 600, // 10 minutes in seconds
+            inboxInterval: null,
+            apiFailures: 0,
+            currentMessageId: null,
+        };
+
+        // DOM Element references
+        const DOMElements = {
+            appRoot: document.getElementById('app-root'),
+            splashScreen: document.getElementById('splash-screen'),
+            progressBar: document.getElementById('progress-bar'),
+            mainApp: document.getElementById('main-app'),
+            themeToggleBtn: document.getElementById('theme-toggle-btn'),
+            themeIcon: document.getElementById('theme-icon'),
+            changeNumberBtn: document.getElementById('change-number-btn'),
+            deleteNumberBtn: document.getElementById('delete-number-btn'),
+            currentNumberText: document.getElementById('current-number-text'),
+            copyBtn: document.getElementById('copy-btn'),
+            countryBadge: document.getElementById('country-badge'),
+            timerDisplay: document.getElementById('timer-display'),
+            extendTimerBtn: document.getElementById('extend-timer-btn'),
+            refreshInboxBtn: document.getElementById('refresh-inbox-btn'),
+            inboxList: document.getElementById('inbox-list'),
+            emptyInboxState: document.getElementById('empty-inbox-state'),
+            toastContainer: document.getElementById('toast-container'),
+            apiErrorCard: document.getElementById('api-error-card'),
+            // Message Detail View
+            inboxView: document.getElementById('inbox-view'),
+            messageDetailView: document.getElementById('message-detail-view'),
+            backToInboxBtn: document.getElementById('back-to-inbox-btn'),
+            messageAvatar: document.getElementById('message-avatar'),
+            messageSender: document.getElementById('message-sender'),
+            messageTimestamp: document.getElementById('message-timestamp'),
+            messageBody: document.getElementById('message-body'),
+            deleteMessageBtn: document.getElementById('delete-message-btn'),
+        };
+
+        // ===================================================================================
+        // UTILITY & HELPER FUNCTIONS
+        // ===================================================================================
+        
+        /**
+         * Securely escapes HTML to prevent XSS.
+         * @param {string} str - The string to escape.
+         * @returns {string} The escaped string.
+         */
+        const escapeHTML = (str) => {
+            const p = document.createElement('p');
+            p.textContent = str;
+            return p.innerHTML;
+        };
+
+        /**
+         * Detects and converts URLs in a string to clickable anchor tags.
+         * @param {string} text - The text containing potential links.
+         * @returns {string} HTML string with clickable links.
+         */
+        const linkify = (text) => {
+            const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+            return text.replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${url}</a>`);
+        };
+
+        /**
+         * Copies text to the clipboard and shows a toast.
+         * @param {string} text - The text to copy.
+         */
+        const copyToClipboard = (text) => {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard!', 'success');
+            }).catch(err => {
+                showToast('Failed to copy!', 'error');
+                console.error('Clipboard copy failed:', err);
+            });
+        };
+
+        /**
+         * Displays an animated toast notification.
+         * @param {string} message - The message to display.
+         * @param {'success'|'error'|'info'} type - The type of toast.
+         */
+        const showToast = (message, type = 'info') => {
+            const toast = document.createElement('div');
+            const colors = {
+                success: 'bg-green-500',
+                error: 'bg-red-500',
+                info: 'bg-gray-700 dark:bg-gray-200 dark:text-gray-800'
+            };
+            toast.className = `w-full max-w-sm p-3 rounded-lg shadow-xl text-white text-center font-semibold ${colors[type]} animate-toast-in`;
+            toast.textContent = message;
+            DOMElements.toastContainer.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('animate-toast-in');
+                toast.classList.add('animate-toast-out');
+                toast.addEventListener('animationend', () => toast.remove());
+            }, 3000);
+        };
+        
+        /**
+         * Formats an ISO date string into a human-friendly relative time.
+         * @param {string} isoString - The ISO date string.
+         * @returns {string} A human-friendly time string.
+         */
+        const formatDate = (isoString) => {
+            const date = new Date(isoString);
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " hours ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " minutes ago";
+            if (seconds < 10) return "Just now";
+            return Math.floor(seconds) + " seconds ago";
+        };
+
+        /**
+         * Shows a spinner inside a button and disables it.
+         * @param {HTMLElement} buttonEl - The button element.
+         */
+        const showSpinner = (buttonEl) => {
+            buttonEl.disabled = true;
+            buttonEl.dataset.originalContent = buttonEl.innerHTML;
+            buttonEl.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+        };
+
+        /**
+         * Hides the spinner and re-enables the button.
+         * @param {HTMLElement} buttonEl - The button element.
+         */
+        const hideSpinner = (buttonEl) => {
+            buttonEl.disabled = false;
+            if (buttonEl.dataset.originalContent) {
+                buttonEl.innerHTML = buttonEl.dataset.originalContent;
+            }
+        };
+
+        // ===================================================================================
+        // MOCK API SIMULATION
+        // ===================================================================================
+
+        const mockAPI = {
+            getNewNumber: async () => {
+                await new Promise(res => setTimeout(res, 750)); // Simulate network delay
+                if (Math.random() < 0.05) throw new Error("Network Error"); // Simulate failure
+                
+                const areaCodes = ['201', '305', '415', '512', '626', '718', '832'];
+                const countryCodes = [{ code: 'USA', prefix: '+1' }, { code: 'UK', prefix: '+44' }, { code: 'CA', prefix: '+1' }];
+                const country = countryCodes[Math.floor(Math.random() * countryCodes.length)];
+                const areaCode = areaCodes[Math.floor(Math.random() * areaCodes.length)];
+                const number = `${country.prefix} (${areaCode}) ${Math.floor(100 + Math.random() * 900)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+                return { id: `sim_${Date.now()}`, number: number, country: country.code };
+            },
+            getMessages: async (numberId) => {
+                await new Promise(res => setTimeout(res, 500));
+                // 10% chance of a new message
+                if (Math.random() < 0.1) {
+                    const senders = ['Google', 'Facebook', 'Amazon', 'Twitter', 'GitHub', 'Apple'];
+                    const codes = ['123456', '98765', '45512', '00981', 'G-345123'];
+                    const sender = senders[Math.floor(Math.random() * senders.length)];
+                    const code = codes[Math.floor(Math.random() * codes.length)];
+                    state.messages.unshift({
+                        id: `msg_${Date.now()}`,
+                        from: sender,
+                        preview: `Your verification code is: ${code}`,
+                        body: `Your verification code is: ${code}.\nDo not share this code with anyone.\nRef: ${Date.now()}`,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                return state.messages;
+            },
+            deleteNumber: async (numberId) => {
+                await new Promise(res => setTimeout(res, 500));
+                return { status: 'success' };
+            },
+            extendTimer: async (numberId) => {
+                await new Promise(res => setTimeout(res, 500));
+                return { status: 'success' };
+            }
+        };
+
+        // ===================================================================================
+        // CORE API & APP LOGIC
+        // ===================================================================================
+
+        /**
+         * A safe fetch wrapper with a timeout.
+         * In this app, it primarily calls the mock API.
+         * @param {Function} apiCall - The async API function to call.
+         * @param {Array} args - Arguments for the API function.
+         * @param {number} timeout - Timeout in milliseconds.
+         * @returns {Promise<any>} The result of the API call.
+         */
+        const fetchWithTimeout = async (apiCall, args = [], timeout = 10000) => {
+            return new Promise(async (resolve, reject) => {
+                const timer = setTimeout(() => reject(new Error('Request timed out')), timeout);
+                try {
+                    const response = await apiCall(...args);
+                    clearTimeout(timer);
+                    resolve(response);
+                } catch (error) {
+                    clearTimeout(timer);
+                    reject(error);
+                }
+            });
+        };
+        
+        /**
+         * Fetches a new number, updates UI, and resets timers/inbox.
+         */
+        const getNewNumber = async () => {
+            showSpinner(DOMElements.changeNumberBtn);
+            DOMElements.apiErrorCard.classList.add('hidden');
+            try {
+                const apiFunction = SIMULATED_MODE ? mockAPI.getNewNumber : () => fetch(`${API_BASE_URL}/numbers`, { method: 'POST' }).then(r => r.json());
+                const data = await fetchWithTimeout(apiFunction);
+                
+                state.currentNumberInfo = data;
+                state.messages = [];
+                state.apiFailures = 0;
+
+                updateNumberUI();
+                renderInbox();
+                resetTimer();
+                startInboxPolling();
+                showToast('New number generated!', 'success');
+            } catch (error) {
+                console.error("Failed to get new number:", error);
+                showToast('Failed to get new number.', 'error');
+                state.apiFailures++;
+                if (state.apiFailures >= 3) {
+                    DOMElements.apiErrorCard.classList.remove('hidden');
+                }
+            } finally {
+                hideSpinner(DOMElements.changeNumberBtn);
+            }
+        };
+
+        /**
+         * Deletes the current number and gets a new one.
+         */
+        const deleteNumber = async () => {
+            if (!state.currentNumberInfo) return;
+            showSpinner(DOMElements.deleteNumberBtn);
+            try {
+                const apiFunction = SIMULATED_MODE ? mockAPI.deleteNumber : () => fetch(`${API_BASE_URL}/numbers/${state.currentNumberInfo.id}`, { method: 'DELETE' });
+                await fetchWithTimeout(apiFunction, [state.currentNumberInfo.id]);
+                
+                showToast('Number deleted!', 'info');
+                stopInboxPolling();
+                // Get a new number after successful deletion
+                await getNewNumber();
+            } catch (error) {
+                console.error("Failed to delete number:", error);
+                showToast('Could not delete number.', 'error');
+            } finally {
+                hideSpinner(DOMElements.deleteNumberBtn);
+            }
+        };
+
+        /**
+         * Polls the inbox for new messages.
+         */
+        const checkInbox = async () => {
+            if (!state.currentNumberInfo) return;
+            try {
+                const apiFunction = SIMULATED_MODE ? mockAPI.getMessages : () => fetch(`${API_BASE_URL}/messages?to=${state.currentNumberInfo.id}`).then(r => r.json());
+                const messages = await fetchWithTimeout(apiFunction, [state.currentNumberInfo.id]);
+                
+                // Naive check for new messages to show animation/toast
+                if (messages.length > state.messages.length) {
+                    const newMessagesCount = messages.length - state.messages.length;
+                    if (document.visibilityState === 'visible') {
+                       showToast(`${newMessagesCount} new message(s) arrived!`, 'info');
+                    }
+                }
+                state.messages = messages;
+                renderInbox();
+            } catch (error) {
+                console.warn("Inbox check failed:", error);
+                // Optional: Handle 401 Unauthorized here by calling handle401()
+                if (error.response?.status === 401) {
+                    handle401();
+                }
+            }
+        };
+
+        /**
+         * Handles 401 errors by getting a new number.
+         */
+        const handle401 = () => {
+            showToast('Session expired. Generated new number.', 'error');
+            getNewNumber();
+        };
+
+        /**
+         * Opens the detail view for a specific message.
+         * @param {string} messageId - The ID of the message to open.
+         */
+        const openMessage = (messageId) => {
+            const message = state.messages.find(m => m.id === messageId);
+            if (!message) return;
+            
+            state.currentMessageId = messageId;
+            DOMElements.messageAvatar.textContent = message.from.charAt(0).toUpperCase();
+            DOMElements.messageSender.textContent = escapeHTML(message.from);
+            DOMElements.messageTimestamp.textContent = formatDate(message.timestamp);
+            DOMElements.messageBody.innerHTML = linkify(escapeHTML(message.body));
+
+            DOMElements.messageDetailView.classList.remove('hidden', 'translate-x-full');
+        };
+
+        const deleteMessage = () => {
+             if(!state.currentMessageId) return;
+             state.messages = state.messages.filter(m => m.id !== state.currentMessageId);
+             state.currentMessageId = null;
+             renderInbox();
+             closeMessageDetailView();
+             showToast('Message deleted (locally).', 'info');
+        }
+
+        const closeMessageDetailView = () => {
+            DOMElements.messageDetailView.classList.add('translate-x-full');
+            // Wait for animation to finish before hiding
+            setTimeout(() => DOMElements.messageDetailView.classList.add('hidden'), 300);
+        };
+
+        // ===================================================================================
+        // UI RENDERING & MANAGEMENT
+        // ===================================================================================
+
+        const updateNumberUI = () => {
+            if (state.currentNumberInfo) {
+                DOMElements.currentNumberText.textContent = state.currentNumberInfo.number;
+                DOMElements.countryBadge.textContent = state.currentNumberInfo.country;
+            }
+        };
+
+        const renderInbox = () => {
+            if (state.messages.length === 0) {
+                DOMElements.inboxList.innerHTML = '';
+                DOMElements.emptyInboxState.style.display = 'block';
+            } else {
+                DOMElements.emptyInboxState.style.display = 'none';
+                DOMElements.inboxList.innerHTML = state.messages.map(msg => `
+                    <div data-message-id="${msg.id}" class="message-item flex items-center p-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors">
+                        <div class="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center text-lg font-bold mr-4 flex-shrink-0">
+                            ${escapeHTML(msg.from.charAt(0).toUpperCase())}
+                        </div>
+                        <div class="flex-grow truncate">
+                            <div class="flex justify-between items-baseline">
+                                <p class="font-bold truncate">${escapeHTML(msg.from)}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">${formatDate(msg.timestamp)}</p>
+                            </div>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 truncate">${escapeHTML(msg.preview)}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        };
+
+        const updateTimerDisplay = () => {
+            const minutes = Math.floor(state.timeLeft / 60).toString().padStart(2, '0');
+            const seconds = (state.timeLeft % 60).toString().padStart(2, '0');
+            DOMElements.timerDisplay.textContent = `${minutes}:${seconds}`;
+        };
+
+        // ===================================================================================
+        // TIMER LOGIC
+        // ===================================================================================
+
+        const startTimer = () => {
+            clearInterval(state.timer);
+            state.timer = setInterval(() => {
+                state.timeLeft--;
+                updateTimerDisplay();
+                if (state.timeLeft <= 0) {
+                    clearInterval(state.timer);
+                    showToast('Timer expired! Extend or get a new number.', 'error');
+                    stopInboxPolling();
+                }
+            }, 1000);
+        };
+
+        const resetTimer = () => {
+            state.timeLeft = 600;
+            updateTimerDisplay();
+            startTimer();
+        };
+
+        const extendTimer = async () => {
+             // In a real app, you would call the API here first
+             // await mockAPI.extendTimer(state.currentNumberInfo.id);
+            resetTimer();
+            startInboxPolling(); // Resume polling if it was stopped
+            showToast('Timer has been extended!', 'success');
+        };
+
+        const startInboxPolling = () => {
+            stopInboxPolling(); // Ensure no multiple intervals are running
+            checkInbox(); // Immediate check
+            state.inboxInterval = setInterval(checkInbox, 10000);
+        };
+
+        const stopInboxPolling = () => {
+            clearInterval(state.inboxInterval);
+            state.inboxInterval = null;
+        };
+
+        // ===================================================================================
+        // THEME MANAGEMENT
+        // ===================================================================================
+
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                DOMElements.themeIcon.textContent = 'light_mode';
+            } else {
+                document.documentElement.classList.remove('dark');
+                DOMElements.themeIcon.textContent = 'dark_mode';
+            }
+        };
+
+        const toggleTheme = () => {
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        };
+
+        // ===================================================================================
+        // EVENT LISTENERS
+        // ===================================================================================
+
+        const setupEventListeners = () => {
+            DOMElements.themeToggleBtn.addEventListener('click', toggleTheme);
+            DOMElements.changeNumberBtn.addEventListener('click', getNewNumber);
+            DOMElements.deleteNumberBtn.addEventListener('click', deleteNumber);
+            DOMElements.copyBtn.addEventListener('click', () => copyToClipboard(state.currentNumberInfo?.number || ''));
+            DOMElements.extendTimerBtn.addEventListener('click', extendTimer);
+            DOMElements.refreshInboxBtn.addEventListener('click', () => {
+                showToast('Refreshing inbox...', 'info');
+                checkInbox();
+            });
+            DOMElements.inboxList.addEventListener('click', (e) => {
+                const messageItem = e.target.closest('.message-item');
+                if (messageItem) {
+                    openMessage(messageItem.dataset.messageId);
+                }
+            });
+            DOMElements.backToInboxBtn.addEventListener('click', closeMessageDetailView);
+            DOMElements.deleteMessageBtn.addEventListener('click', deleteMessage);
+        };
+
+
+        // ===================================================================================
+        // APP INITIALIZATION
+        // ===================================================================================
+
+        const initApp = async () => {
+            // 0. Make the app visible to prevent FOUC
+            DOMElements.appRoot.style.opacity = '1';
+
+            // 1. Initialize theme
+            const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(savedTheme);
+            
+            // 2. Setup event listeners
+            setupEventListeners();
+            
+            // 3. Run splash screen animation
+            DOMElements.progressBar.classList.add('animate-progress');
+            
+            // 4. After splash, fetch first number and show app
+            setTimeout(async () => {
+                DOMElements.splashScreen.style.opacity = '0';
+                await getNewNumber(); // Get initial number
+                DOMElements.mainApp.classList.remove('hidden');
+                setTimeout(() => DOMElements.splashScreen.remove(), 500); // Remove from DOM after fade
+            }, 1600);
+        };
+
+        // Start the application
+        document.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
